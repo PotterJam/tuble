@@ -28,11 +28,10 @@ describe("findRoute", () => {
     const result = findRoute("victoria", "canary-wharf");
     expect(result).toEqual({
       segments: [
-        { line: "victoria", stops: 2, endStationId: "oxford-circus" },
-        { line: "central", stops: 1, endStationId: "tottenham-court-road" },
-        { line: "elizabeth", stops: 4, endStationId: "canary-wharf" },
+        { line: "district", stops: 2, endStationId: "westminster" },
+        { line: "jubilee", stops: 6, endStationId: "canary-wharf" },
       ],
-      totalStops: 7,
+      totalStops: 8,
     });
   });
 

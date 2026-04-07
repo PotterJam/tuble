@@ -103,7 +103,7 @@ export function findRoute(fromId: string, toId: string): RouteHint {
     for (const edge of graph.adjacency[current.stationId] ?? []) {
       const isChange =
         current.line !== null && current.line !== edge.line;
-      const nextCost = current.cost + 1 + (isChange ? 1 : 0);
+      const nextCost = current.cost + 1 + (isChange ? 1.5 : 0);
 
       const nextKey = stateKey(edge.to, edge.line);
       if (nextCost < (best.get(nextKey) ?? Infinity)) {
