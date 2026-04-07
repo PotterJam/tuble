@@ -1,0 +1,138 @@
+import type { GameState, GuessResult, RouteHint } from "./types";
+import { findRoute, getAllStationIds, graph } from "./pathfinding";
+
+const MAX_GUESSES = 6;
+const STORAGE_KEY = "tuble-game";
+
+/**
+ * Simple seeded PRNG (mulberry32).
+ * Returns a function that produces deterministic floats in [0, 1).
+ */
+function mulberry32(seed: number): () => number {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Get today's date string in YYYY-MM-DD format (local time).
+ */
+export function getTodayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Convert a date key to a numeric seed.
+ */
+function dateSeed(dateKey: string): number {
+  let hash = 0;
+  for (let i = 0; i < dateKey.length; i++) {
+    hash = (hash * 31 + dateKey.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+/**
+ * Pick the target station for a given date.
+ */
+export function getTargetForDate(dateKey: string): string {
+  const ids = getAllStationIds();
+  const rng = mulberry32(dateSeed(dateKey));
+  const index = Math.floor(rng() * ids.length);
+  return ids[index];
+}
+
+/**
+ * Create a fresh game state for a given date.
+ */
+export function createGame(dateKey: string): GameState {
+  return {
+    targetId: getTargetForDate(dateKey),
+    guesses: [],
+    maxGuesses: MAX_GUESSES,
+    status: "playing",
+  };
+}
+
+/**
+ * Process a guess against the current game state.
+ * Returns a new GameState (does not mutate the input).
+ */
+export function makeGuess(state: GameState, stationId: string): GameState {
+  if (state.status !== "playing") {
+    return state;
+  }
+
+  if (!graph.stations[stationId]) {
+    throw new Error(`Unknown station: ${stationId}`);
+  }
+
+  // Don't allow duplicate guesses
+  if (state.guesses.some((g) => g.stationId === stationId)) {
+    return state;
+  }
+
+  const correct = stationId === state.targetId;
+  const hints: RouteHint[] = findRoute(stationId, state.targetId);
+  // Use the first route as the hint
+  const hint = hints[0];
+
+  const result: GuessResult = { stationId, correct, hint };
+  const guesses = [...state.guesses, result];
+
+  let status: GameState["status"] = "playing";
+  if (correct) {
+    status = "won";
+  } else if (guesses.length >= state.maxGuesses) {
+    status = "lost";
+  }
+
+  return { ...state, guesses, status };
+}
+
+/**
+ * Get all station names for autocomplete, sorted alphabetically.
+ */
+export function getStationList(): { id: string; name: string }[] {
+  return Object.entries(graph.stations)
+    .map(([id, station]) => ({ id, name: station.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// --- localStorage persistence ---
+
+interface SavedState {
+  dateKey: string;
+  game: GameState;
+}
+
+/**
+ * Save game state to localStorage.
+ */
+export function saveGame(dateKey: string, state: GameState): void {
+  const data: SavedState = { dateKey, game: state };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+/**
+ * Load today's game from localStorage, or create a new one.
+ */
+export function loadOrCreateGame(dateKey: string): GameState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved: SavedState = JSON.parse(raw);
+      if (saved.dateKey === dateKey) {
+        return saved.game;
+      }
+    }
+  } catch {
+    // Corrupted data — start fresh
+  }
+  return createGame(dateKey);
+}
