@@ -7,9 +7,11 @@ import {
   getStationList,
   createGame,
   randomGame,
+  getStationCode,
 } from "./game/game";
 import { loadDifficulty, saveDifficulty, type Difficulty } from "./game/settings";
-import { getStationName } from "./game/pathfinding";
+import { getStationName, graph } from "./game/pathfinding";
+import ridershipData from "./data/ridership.json";
 import StationInput from "./components/StationInput";
 import GuessList from "./components/GuessList";
 import GameOver from "./components/GameOver";
@@ -54,6 +56,9 @@ function App() {
   }, []);
 
   const targetName = getStationName(gameState.targetId) ?? gameState.targetId;
+  const targetCode = getStationCode(gameState.targetId) ?? "???";
+  const targetZone = graph.stations[gameState.targetId]?.zone ?? "?";
+  const targetRidership = (ridershipData as Record<string, number>)[gameState.targetId] ?? 0;
 
   return (
     <div className="app">
@@ -80,7 +85,13 @@ function App() {
         />
       )}
 
-      <GameOver state={gameState} targetName={targetName} />
+      <GameOver
+        state={gameState}
+        targetName={targetName}
+        targetCode={targetCode}
+        targetZone={targetZone}
+        targetRidership={targetRidership}
+      />
 
       <div className="bottom-buttons">
         <Settings difficulty={difficulty} onChangeDifficulty={handleDifficulty} />
