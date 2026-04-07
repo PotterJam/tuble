@@ -133,7 +133,16 @@ export default function GuessList({ guesses, getStationName, revealStations, sho
                   {guess.hint.totalStops} {guess.hint.totalStops === 1 ? "stop" : "stops"} away
                 </div>
                 {guess.ridership != null && (
-                  <div className="guess-ridership">
+                  <div
+                    className="guess-ridership"
+                    title={
+                      guess.ridershipComparison === "higher"
+                        ? "Target station is quieter"
+                        : guess.ridershipComparison === "lower"
+                          ? "Target station is busier"
+                          : "Same ridership as target"
+                    }
+                  >
                     {formatRidership(guess.ridership)}/day {guess.ridershipComparison === "higher" ? "\u25BC" : guess.ridershipComparison === "lower" ? "\u25B2" : "="}
                   </div>
                 )}

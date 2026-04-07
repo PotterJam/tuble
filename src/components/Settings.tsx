@@ -40,6 +40,11 @@ export default function Settings({ difficulty, onChangeDifficulty }: SettingsPro
               appears on both routes — so you know they pass through the same point,
               even though the station name is hidden.
             </p>
+            <h3>Ridership</h3>
+            <p>
+              Each guess shows the station's average daily ridership. The arrow tells
+              you whether the target station is busier (▲) or quieter (▼).
+            </p>
             <h3>Difficulty</h3>
             <p>
               On <strong>Easy</strong>, tube line names are shown on each route
