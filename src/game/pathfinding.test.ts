@@ -6,7 +6,7 @@ describe("findRoute", () => {
     const ids = getAllStationIds();
     for (const id of ids) {
         const result = findRoute(id, id);
-        expect(result.totalStops, `${id} -> ${id}`).toEqual(0);
+        expect(result, `${id} -> ${id}`).toEqual([{ segments: [], totalStops: 0 }]);
       }
     }
   );
@@ -19,25 +19,43 @@ describe("findRoute", () => {
   it("finds a direct single-line route between adjacent stations", () => {
     // Bank -> St. Paul's are adjacent on Central line
     const result = findRoute("bank", "st-pauls");
-    expect(result.totalStops).toBe(1);
-    expect(result.segments).toEqual([{ line: "central", stops: 1, endStationId: "st-pauls" }]);
+    expect(result).toHaveLength(1);
+    expect(result[0].totalStops).toBe(1);
+    expect(result[0].segments).toEqual([{ line: "central", stops: 1, endStationId: "st-pauls" }]);
   });
 
-  it("finds a route requiring a line change", () => {
-    // Victoria (Victoria line) to Canary Wharf (Jubilee line)
+  it("finds a route with multiple options", () => {
+    // Victoria (Victoria line) to Canary Wharf (Jubilee line) has a few similar options
     const result = findRoute("victoria", "canary-wharf");
-    expect(result).toEqual({
-      segments: [
-        { line: "district", stops: 2, endStationId: "westminster" },
-        { line: "jubilee", stops: 6, endStationId: "canary-wharf" },
-      ],
-      totalStops: 8,
-    });
+    expect(result).toEqual([
+      {
+        segments: [
+          { line: "district", stops: 2, endStationId: "westminster" },
+          { line: "jubilee", stops: 6, endStationId: "canary-wharf" },
+        ],
+        totalStops: 8,
+      },
+      {
+        segments: [
+          { line: "circle", stops: 2, endStationId: "westminster" },
+          { line: "jubilee", stops: 6, endStationId: "canary-wharf" },
+        ],
+        totalStops: 8,
+      },
+      {
+        segments: [
+          { line: "victoria", stops: 1, endStationId: "green-park" },
+          { line: "jubilee", stops: 7, endStationId: "canary-wharf" },
+        ],
+        totalStops: 8,
+      },
+    ]);
   });
 
-  it("finds a multi-stop route from Oxford Circus to Bank", () => {
+  it("finds a single line route from Oxford Circus to Bank", () => {
+    // this route ends up with multiple hops if you don't penalise changes
     const result = findRoute("oxford-circus", "bank");
-    expect(result).toEqual({
+    expect(result).toContainEqual({
       segments: [
         { line: "central", stops: 5, endStationId: "bank" },
       ],
@@ -45,13 +63,14 @@ describe("findRoute", () => {
     });
   });
 
-
   it("every segment has a valid line", () => {
     const result = findRoute("paddington", "stratford");
-    for (const seg of result.segments) {
-      expect(seg.line).toBeTruthy();
-      expect(seg.stops).toBeGreaterThan(0);
-      expect(seg.endStationId).toBeTruthy();
+    for (const route of result) {
+      for (const seg of route.segments) {
+        expect(seg.line).toBeTruthy();
+        expect(seg.stops).toBeGreaterThan(0);
+        expect(seg.endStationId).toBeTruthy();
+      }
     }
   });
 
@@ -61,7 +80,8 @@ describe("findRoute", () => {
       for (const to of ids) {
         if (from === to) continue;
         const result = findRoute(from, to);
-        expect(result.totalStops, `${from} -> ${to}`).toBeGreaterThan(0);
+        expect(result.length, `${from} -> ${to}`).toBeGreaterThan(0);
+        expect(result[0].totalStops, `${from} -> ${to}`).toBeGreaterThan(0);
       }
     }
   }, 30_000);

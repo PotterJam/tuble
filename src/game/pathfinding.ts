@@ -5,27 +5,26 @@ const graph: TubeGraph = graphData as TubeGraph;
 
 export { graph };
 
-interface DijkstraNode {
+interface HeapEntry {
   stationId: string;
-  line: string | null; // the line we arrived on
+  line: string | null;
   cost: number;
-  parent: DijkstraNode | null;
 }
 
-/** Min-heap keyed on node.cost */
+/** Min-heap keyed on entry.cost */
 class MinHeap {
-  private heap: DijkstraNode[] = [];
+  private heap: HeapEntry[] = [];
 
   get size() {
     return this.heap.length;
   }
 
-  push(node: DijkstraNode) {
-    this.heap.push(node);
+  push(entry: HeapEntry) {
+    this.heap.push(entry);
     this.bubbleUp(this.heap.length - 1);
   }
 
-  pop(): DijkstraNode {
+  pop(): HeapEntry {
     const top = this.heap[0];
     const last = this.heap.pop()!;
     if (this.heap.length > 0) {
@@ -61,14 +60,27 @@ class MinHeap {
   }
 }
 
+const LINE_CHANGE_PENALTY = 1.5;
+
+function stateKey(stationId: string, line: string | null): string {
+  return `${stationId}:${line ?? "*"}`;
+}
+
+function parseStateKey(key: string): { stationId: string; line: string | null } {
+  const i = key.lastIndexOf(":");
+  const line = key.slice(i + 1);
+  return { stationId: key.slice(0, i), line: line === "*" ? null : line };
+}
+
 /**
- * Dijkstra shortest path from `fromId` to `toId`.
- * Each stop costs 1, and each line change costs an additional 1.
- * Throws if no path exists. Returns a RouteHint with segments collapsed by line.
+ * Dijkstra shortest path(s) from `fromId` to `toId`.
+ * Each stop costs 1, and each line change costs an additional 1.5.
+ * Returns all equally-weighted optimal routes.
+ * Throws if no path exists.
  */
-export function findRoute(fromId: string, toId: string): RouteHint {
+export function findRoute(fromId: string, toId: string): RouteHint[] {
   if (fromId === toId) {
-    return { segments: [], totalStops: 0 };
+    return [{ segments: [], totalStops: 0 }];
   }
 
   if (!graph.adjacency[fromId]) {
@@ -78,73 +90,116 @@ export function findRoute(fromId: string, toId: string): RouteHint {
     throw new Error(`Unknown station: ${toId}`);
   }
 
-  // State: (stationId, line) — arriving at the same station on different lines
-  // are distinct states so we can correctly cost line changes.
+  // Track best cost and all optimal parents for each (station, line) state
   const best = new Map<string, number>();
-  const stateKey = (stationId: string, line: string | null) =>
-    `${stationId}:${line ?? "*"}`;
+  const parents = new Map<string, string[]>();
 
+  const startKey = stateKey(fromId, null);
   const queue = new MinHeap();
-  queue.push({ stationId: fromId, line: null, cost: 0, parent: null });
-  best.set(stateKey(fromId, null), 0);
+  queue.push({ stationId: fromId, line: null, cost: 0 });
+  best.set(startKey, 0);
+  parents.set(startKey, []);
+
+  let bestTargetCost = Infinity;
 
   while (queue.size > 0) {
     const current = queue.pop();
 
-    // When we pop the target, this is guaranteed optimal
-    if (current.stationId === toId) {
-      return buildHint(current);
-    }
+    const key = stateKey(current.stationId, current.line);
+
+    // Once we've exceeded the best target cost, we're done
+    if (current.cost > bestTargetCost) break;
 
     // Skip if we've already settled a better path to this state
-    const key = stateKey(current.stationId, current.line);
     if (current.cost > (best.get(key) ?? Infinity)) continue;
+
+    // If this is the target, record its cost but don't expand further
+    if (current.stationId === toId) {
+      bestTargetCost = current.cost;
+      continue;
+    }
 
     for (const edge of graph.adjacency[current.stationId] ?? []) {
       const isChange =
         current.line !== null && current.line !== edge.line;
-      const nextCost = current.cost + 1 + (isChange ? 1.5 : 0);
+      const nextCost = current.cost + 1 + (isChange ? LINE_CHANGE_PENALTY : 0);
+
+      if (nextCost > bestTargetCost) continue;
 
       const nextKey = stateKey(edge.to, edge.line);
-      if (nextCost < (best.get(nextKey) ?? Infinity)) {
+      const prevBest = best.get(nextKey) ?? Infinity;
+
+      if (nextCost < prevBest) {
+        // Found a strictly better path — replace parents
         best.set(nextKey, nextCost);
-        queue.push({
-          stationId: edge.to,
-          line: edge.line,
-          cost: nextCost,
-          parent: current,
-        });
+        parents.set(nextKey, [key]);
+        queue.push({ stationId: edge.to, line: edge.line, cost: nextCost });
+      } else if (nextCost === prevBest) {
+        // Found an equally good path — add parent
+        parents.get(nextKey)!.push(key);
       }
     }
   }
 
-  throw new Error(`No route found from ${fromId} to ${toId}`);
-}
-
-function buildHint(node: DijkstraNode): RouteHint {
-  // Walk back to reconstruct path edges
-  const edges: { line: string; stationId: string }[] = [];
-  let current: DijkstraNode | null = node;
-  while (current && current.line !== null) {
-    edges.push({ line: current.line, stationId: current.stationId });
-    current = current.parent;
-  }
-  edges.reverse();
-
-  // Collapse consecutive edges on the same line into segments
-  const segments: RouteSegment[] = [];
-  for (const edge of edges) {
-    const last = segments[segments.length - 1];
-    if (last && last.line === edge.line) {
-      last.stops++;
-      last.endStationId = edge.stationId;
-    } else {
-      segments.push({ line: edge.line, stops: 1, endStationId: edge.stationId });
+  // Collect all target state keys that achieved the best cost
+  const targetKeys: string[] = [];
+  for (const [key, cost] of best) {
+    const { stationId } = parseStateKey(key);
+    if (stationId === toId && cost === bestTargetCost) {
+      targetKeys.push(key);
     }
   }
 
-  const totalStops = edges.length;
-  return { segments, totalStops };
+  if (targetKeys.length === 0) {
+    throw new Error(`No route found from ${fromId} to ${toId}`);
+  }
+
+  // Reconstruct all paths by walking backwards through parents
+  const allPaths: { line: string; stationId: string }[][] = [];
+
+  function reconstruct(key: string, path: { line: string; stationId: string }[]) {
+    const parentList = parents.get(key);
+    if (!parentList || parentList.length === 0) {
+      // Reached the start
+      allPaths.push([...path].reverse());
+      return;
+    }
+    const { stationId, line } = parseStateKey(key);
+    for (const parentKey of parentList) {
+      path.push({ line: line!, stationId });
+      reconstruct(parentKey, path);
+      path.pop();
+    }
+  }
+
+  for (const targetKey of targetKeys) {
+    reconstruct(targetKey, []);
+  }
+
+  // Convert paths to RouteHints, deduplicating by segment structure
+  const seen = new Set<string>();
+  const hints: RouteHint[] = [];
+
+  for (const edges of allPaths) {
+    const segments: RouteSegment[] = [];
+    for (const edge of edges) {
+      const last = segments[segments.length - 1];
+      if (last && last.line === edge.line) {
+        last.stops++;
+        last.endStationId = edge.stationId;
+      } else {
+        segments.push({ line: edge.line, stops: 1, endStationId: edge.stationId });
+      }
+    }
+    const totalStops = edges.length;
+    const key = JSON.stringify(segments);
+    if (!seen.has(key)) {
+      seen.add(key);
+      hints.push({ segments, totalStops });
+    }
+  }
+
+  return hints;
 }
 
 /**
