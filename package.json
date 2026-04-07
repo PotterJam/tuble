@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build-graph": "tsx scripts/build-graph.ts"
+    "build-graph": "tsx scripts/build-graph.ts",
+    "build-ridership": "tsx scripts/build-ridership.ts"
   },
   "dependencies": {
     "react": "^19.1.0",

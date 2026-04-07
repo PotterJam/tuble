@@ -16,7 +16,12 @@ Average daily entry+exit tap counts per station, computed from TfL's station foo
 
 Source: https://crowding.data.tfl.gov.uk/Network%20Demand/StationFootfall_2025_2026%20.csv
 
-To regenerate, download the CSV above and run `scripts/build-ridership.ts` (TODO).
+To regenerate:
+
+```bash
+curl -o footfall.csv 'https://crowding.data.tfl.gov.uk/Network%20Demand/StationFootfall_2025_2026%20.csv'
+npm run build-ridership -- footfall.csv
+```
 
 Licensed under TfL Open Data terms. Required attribution (included in the app footer):
 - "Powered by TfL Open Data"
