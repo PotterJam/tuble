@@ -4,6 +4,11 @@ import linesData from "../data/lines.json";
 
 const lines = linesData as Record<string, { name: string; colour: string }>;
 
+function formatRidership(n: number): string {
+  if (n >= 1000) return Math.round(n / 1000) + "k";
+  return String(n);
+}
+
 const MARKER_COLOURS = [
   "#3498db", "#e74c3c", "#2ecc71", "#9b59b6",
   "#f39c12", "#1abc9c", "#e67e22", "#e84393",
@@ -123,8 +128,15 @@ export default function GuessList({ guesses, getStationName, revealStations, sho
                   );
                 })}
               </div>
-              <div className="guess-total">
-                {guess.hint.totalStops} {guess.hint.totalStops === 1 ? "stop" : "stops"} away
+              <div className="guess-footer">
+                <div className="guess-total">
+                  {guess.hint.totalStops} {guess.hint.totalStops === 1 ? "stop" : "stops"} away
+                </div>
+                {guess.ridership != null && (
+                  <div className="guess-ridership">
+                    {formatRidership(guess.ridership)}/day {guess.ridershipComparison === "higher" ? "\u25BC" : guess.ridershipComparison === "lower" ? "\u25B2" : "="}
+                  </div>
+                )}
               </div>
             </div>
           )}

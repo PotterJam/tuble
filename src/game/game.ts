@@ -1,6 +1,7 @@
-import type { GameState, GuessResult, RouteHint, CodeHint, LetterStatus } from "./types";
+import type { GameState, GuessResult, RouteHint, CodeHint, LetterStatus, RidershipComparison } from "./types";
 import { findRoute, getAllStationIds, graph } from "./pathfinding";
 import stationCodes from "../data/station-codes.json";
+import ridershipData from "../data/ridership.json";
 
 const MAX_GUESSES = 6;
 const STORAGE_KEY = "tuble-game";
@@ -61,6 +62,20 @@ export function createGame(dateKey: string): GameState {
 }
 
 /**
+ * Create a game with a random target (for testing).
+ */
+export function randomGame(): GameState {
+  const ids = getAllStationIds();
+  const targetId = ids[Math.floor(Math.random() * ids.length)];
+  return {
+    targetId,
+    guesses: [],
+    maxGuesses: MAX_GUESSES,
+    status: "playing",
+  };
+}
+
+/**
  * Process a guess against the current game state.
  * Returns a new GameState (does not mutate the input).
  */
@@ -83,7 +98,13 @@ export function makeGuess(state: GameState, stationId: string): GameState {
   const hint = hints[0];
   const codeHint = compareStationCodes(stationId, state.targetId);
 
-  const result: GuessResult = { stationId, correct, hint, codeHint };
+  const ridership = getRidership(stationId);
+  const targetRidership = getRidership(state.targetId);
+  let ridershipComparison: RidershipComparison = "equal";
+  if (ridership > targetRidership) ridershipComparison = "higher";
+  else if (ridership < targetRidership) ridershipComparison = "lower";
+
+  const result: GuessResult = { stationId, correct, hint, codeHint, ridership, ridershipComparison };
   const guesses = [...state.guesses, result];
 
   let status: GameState["status"] = "playing";
@@ -106,6 +127,11 @@ export function getStationList(): { id: string; name: string }[] {
 }
 
 const codes = stationCodes as Record<string, string>;
+const riderships = ridershipData as Record<string, number>;
+
+function getRidership(stationId: string): number {
+  return riderships[stationId] ?? 0;
+}
 
 /**
  * Get the 3-letter code for a station.

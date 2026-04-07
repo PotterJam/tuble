@@ -37,11 +37,15 @@ export interface CodeHint {
   letters: { char: string; status: LetterStatus }[];
 }
 
+export type RidershipComparison = "higher" | "lower" | "equal";
+
 export interface GuessResult {
   stationId: string;
   correct: boolean;
   hint: RouteHint;
   codeHint: CodeHint;
+  ridership: number;
+  ridershipComparison: RidershipComparison;
 }
 
 export interface GameState {
