@@ -32,6 +32,13 @@ export default function Settings({ difficulty, onChangeDifficulty }: SettingsPro
               <li><span className="code-tile present inline-tile">Y</span> Right letter, wrong position</li>
               <li><span className="code-tile absent inline-tile">X</span> Letter not in the code</li>
             </ul>
+            <h3>Shared interchanges</h3>
+            <p>
+              If two of your guesses route through the same interchange station,
+              a matching coloured <span className="station-marker inline-marker" style={{ backgroundColor: "#3498db" }} /> marker
+              appears on both routes — so you know they pass through the same point,
+              even though the station name is hidden.
+            </p>
             <h3>Difficulty</h3>
             <p>
               On <strong>Easy</strong>, tube line names are shown on each route

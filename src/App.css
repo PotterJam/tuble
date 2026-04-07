@@ -299,6 +299,10 @@
   font-size: 0.8rem;
 }
 
+.segment-chevron {
+  color: #999;
+}
+
 .segment-stops {
   color: #666;
   white-space: nowrap;
@@ -308,6 +312,24 @@
   color: #444;
   font-style: italic;
   white-space: nowrap;
+}
+
+.segment-marker {
+  display: flex;
+  align-items: center;
+}
+
+.station-marker {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+}
+
+.inline-marker {
+  width: 0.75rem;
+  height: 0.75rem;
+  vertical-align: middle;
 }
 
 .guess-total {
