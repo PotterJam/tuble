@@ -5,14 +5,65 @@ const graph: TubeGraph = graphData as TubeGraph;
 
 export { graph };
 
-interface BfsNode {
+interface DijkstraNode {
   stationId: string;
   line: string | null; // the line we arrived on
-  parent: BfsNode | null;
+  cost: number;
+  parent: DijkstraNode | null;
+}
+
+/** Min-heap keyed on node.cost */
+class MinHeap {
+  private heap: DijkstraNode[] = [];
+
+  get size() {
+    return this.heap.length;
+  }
+
+  push(node: DijkstraNode) {
+    this.heap.push(node);
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  pop(): DijkstraNode {
+    const top = this.heap[0];
+    const last = this.heap.pop()!;
+    if (this.heap.length > 0) {
+      this.heap[0] = last;
+      this.sinkDown(0);
+    }
+    return top;
+  }
+
+  private bubbleUp(i: number) {
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (this.heap[i].cost >= this.heap[parent].cost) break;
+      [this.heap[i], this.heap[parent]] = [this.heap[parent], this.heap[i]];
+      i = parent;
+    }
+  }
+
+  private sinkDown(i: number) {
+    const n = this.heap.length;
+    while (true) {
+      let smallest = i;
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      if (left < n && this.heap[left].cost < this.heap[smallest].cost)
+        smallest = left;
+      if (right < n && this.heap[right].cost < this.heap[smallest].cost)
+        smallest = right;
+      if (smallest === i) break;
+      [this.heap[i], this.heap[smallest]] = [this.heap[smallest], this.heap[i]];
+      i = smallest;
+    }
+  }
 }
 
 /**
- * BFS shortest path from `fromId` to `toId`.
+ * Dijkstra shortest path from `fromId` to `toId`.
+ * Each stop costs 1, and each line change costs an additional 1.
  * Throws if no path exists. Returns a RouteHint with segments collapsed by line.
  */
 export function findRoute(fromId: string, toId: string): RouteHint {
@@ -27,38 +78,53 @@ export function findRoute(fromId: string, toId: string): RouteHint {
     throw new Error(`Unknown station: ${toId}`);
   }
 
-  const visited = new Set<string>();
-  const queue: BfsNode[] = [{ stationId: fromId, line: null, parent: null }];
-  visited.add(fromId);
+  // State: (stationId, line) — arriving at the same station on different lines
+  // are distinct states so we can correctly cost line changes.
+  const best = new Map<string, number>();
+  const stateKey = (stationId: string, line: string | null) =>
+    `${stationId}:${line ?? "*"}`;
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
+  const queue = new MinHeap();
+  queue.push({ stationId: fromId, line: null, cost: 0, parent: null });
+  best.set(stateKey(fromId, null), 0);
+
+  while (queue.size > 0) {
+    const current = queue.pop();
+
+    // When we pop the target, this is guaranteed optimal
+    if (current.stationId === toId) {
+      return buildHint(current);
+    }
+
+    // Skip if we've already settled a better path to this state
+    const key = stateKey(current.stationId, current.line);
+    if (current.cost > (best.get(key) ?? Infinity)) continue;
 
     for (const edge of graph.adjacency[current.stationId] ?? []) {
-      if (visited.has(edge.to)) continue;
-      visited.add(edge.to);
+      const isChange =
+        current.line !== null && current.line !== edge.line;
+      const nextCost = current.cost + 1 + (isChange ? 1 : 0);
 
-      const next: BfsNode = {
-        stationId: edge.to,
-        line: edge.line,
-        parent: current,
-      };
-
-      if (edge.to === toId) {
-        return buildHint(next);
+      const nextKey = stateKey(edge.to, edge.line);
+      if (nextCost < (best.get(nextKey) ?? Infinity)) {
+        best.set(nextKey, nextCost);
+        queue.push({
+          stationId: edge.to,
+          line: edge.line,
+          cost: nextCost,
+          parent: current,
+        });
       }
-
-      queue.push(next);
     }
   }
 
   throw new Error(`No route found from ${fromId} to ${toId}`);
 }
 
-function buildHint(node: BfsNode): RouteHint {
+function buildHint(node: DijkstraNode): RouteHint {
   // Walk back to reconstruct path edges
   const edges: { line: string; stationId: string }[] = [];
-  let current: BfsNode | null = node;
+  let current: DijkstraNode | null = node;
   while (current && current.line !== null) {
     edges.push({ line: current.line, stationId: current.stationId });
     current = current.parent;

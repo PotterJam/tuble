@@ -28,11 +28,9 @@ describe("findRoute", () => {
     const result = findRoute("victoria", "canary-wharf");
     expect(result).toEqual({
       segments: [
-        { line: "circle", stops: 2, endStationId: "westminster" },
-        { line: "jubilee", stops: 1, endStationId: "waterloo" },
-        { line: "waterloo-city", stops: 1, endStationId: "bank" },
-        { line: "central", stops: 1, endStationId: "liverpool-street" },
-        { line: "elizabeth", stops: 2, endStationId: "canary-wharf" },
+        { line: "victoria", stops: 2, endStationId: "oxford-circus" },
+        { line: "central", stops: 1, endStationId: "tottenham-court-road" },
+        { line: "elizabeth", stops: 4, endStationId: "canary-wharf" },
       ],
       totalStops: 7,
     });
@@ -42,11 +40,9 @@ describe("findRoute", () => {
     const result = findRoute("oxford-circus", "bank");
     expect(result).toEqual({
       segments: [
-        { line: "central", stops: 1, endStationId: "tottenham-court-road" },
-        { line: "elizabeth", stops: 2, endStationId: "liverpool-street" },
-        { line: "central", stops: 1, endStationId: "bank" },
+        { line: "central", stops: 5, endStationId: "bank" },
       ],
-      totalStops: 4,
+      totalStops: 5,
     });
   });
 
@@ -69,7 +65,7 @@ describe("findRoute", () => {
         expect(result.totalStops, `${from} -> ${to}`).toBeGreaterThan(0);
       }
     }
-  });
+  }, 30_000);
 });
 
 describe("getStationName", () => {
