@@ -5,6 +5,39 @@ interface StationOption {
   name: string;
 }
 
+const MAX_SUGGESTIONS = 25;
+
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+}
+
+function filterAndRank(
+  stations: StationOption[],
+  query: string,
+  guessedIds: Set<string>
+): StationOption[] {
+  const q = normalize(query);
+  const matches: { station: StationOption; rank: number }[] = [];
+
+  for (const s of stations) {
+    if (guessedIds.has(s.id)) continue;
+    const name = normalize(s.name);
+    if (!name.includes(q)) continue;
+
+    // Rank: starts-with first (0), then word-boundary match (1), then substring (2)
+    let rank = 2;
+    if (name.startsWith(q)) {
+      rank = 0;
+    } else if (name.includes(" " + q)) {
+      rank = 1;
+    }
+    matches.push({ station: s, rank });
+  }
+
+  matches.sort((a, b) => a.rank - b.rank || a.station.name.localeCompare(b.station.name));
+  return matches.slice(0, MAX_SUGGESTIONS).map((m) => m.station);
+}
+
 interface StationInputProps {
   stations: StationOption[];
   guessedIds: Set<string>;
@@ -18,15 +51,9 @@ export default function StationInput({ stations, guessedIds, onGuess }: StationI
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const filtered = query.length > 0
-    ? stations.filter(
-        (s) =>
-          !guessedIds.has(s.id) &&
-          s.name.toLowerCase().includes(query.toLowerCase())
-      )
+  const visible = query.length > 0
+    ? filterAndRank(stations, query, guessedIds)
     : [];
-
-  const visible = filtered.slice(0, 8);
 
   useEffect(() => {
     setHighlightIndex(0);
