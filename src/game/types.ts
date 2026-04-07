@@ -18,9 +18,9 @@ export interface TubeGraph {
   adjacency: Record<string, Edge[]>;
 }
 
-/** One segment of a route — a contiguous run on a single line */
+/** One segment of a route — a contiguous run on one or more parallel lines */
 export interface RouteSegment {
-  line: string;
+  lines: string[];
   stops: number;
   endStationId: string;
 }

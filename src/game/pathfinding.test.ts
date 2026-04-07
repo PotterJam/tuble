@@ -21,31 +21,24 @@ describe("findRoute", () => {
     const result = findRoute("bank", "st-pauls");
     expect(result).toHaveLength(1);
     expect(result[0].totalStops).toBe(1);
-    expect(result[0].segments).toEqual([{ line: "central", stops: 1, endStationId: "st-pauls" }]);
+    expect(result[0].segments).toEqual([{ lines: ["central"], stops: 1, endStationId: "st-pauls" }]);
   });
 
-  it("finds a route with multiple options", () => {
-    // Victoria (Victoria line) to Canary Wharf (Jubilee line) has a few similar options
+  it("finds a route with multiple options and merges parallel lines", () => {
+    // Victoria to Canary Wharf: district/circle share the same segment shape
     const result = findRoute("victoria", "canary-wharf");
     expect(result).toEqual([
       {
         segments: [
-          { line: "district", stops: 2, endStationId: "westminster" },
-          { line: "jubilee", stops: 6, endStationId: "canary-wharf" },
+          { lines: ["circle", "district"], stops: 2, endStationId: "westminster" },
+          { lines: ["jubilee"], stops: 6, endStationId: "canary-wharf" },
         ],
         totalStops: 8,
       },
       {
         segments: [
-          { line: "circle", stops: 2, endStationId: "westminster" },
-          { line: "jubilee", stops: 6, endStationId: "canary-wharf" },
-        ],
-        totalStops: 8,
-      },
-      {
-        segments: [
-          { line: "victoria", stops: 1, endStationId: "green-park" },
-          { line: "jubilee", stops: 7, endStationId: "canary-wharf" },
+          { lines: ["victoria"], stops: 1, endStationId: "green-park" },
+          { lines: ["jubilee"], stops: 7, endStationId: "canary-wharf" },
         ],
         totalStops: 8,
       },
@@ -57,17 +50,17 @@ describe("findRoute", () => {
     const result = findRoute("oxford-circus", "bank");
     expect(result).toContainEqual({
       segments: [
-        { line: "central", stops: 5, endStationId: "bank" },
+        { lines: ["central"], stops: 5, endStationId: "bank" },
       ],
       totalStops: 5,
     });
   });
 
-  it("every segment has a valid line", () => {
+  it("every segment has valid lines", () => {
     const result = findRoute("paddington", "stratford");
     for (const route of result) {
       for (const seg of route.segments) {
-        expect(seg.line).toBeTruthy();
+        expect(seg.lines.length).toBeGreaterThan(0);
         expect(seg.stops).toBeGreaterThan(0);
         expect(seg.endStationId).toBeTruthy();
       }

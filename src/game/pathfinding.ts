@@ -176,12 +176,13 @@ export function findRoute(fromId: string, toId: string): RouteHint[] {
     reconstruct(targetKey, []);
   }
 
-  // Convert paths to RouteHints, deduplicating by segment structure
-  const seen = new Set<string>();
-  const hints: RouteHint[] = [];
+  // Convert paths to single-line segments first
+  interface RawSegment { line: string; stops: number; endStationId: string }
+  const rawRoutes: { segments: RawSegment[]; totalStops: number }[] = [];
+  const seenRaw = new Set<string>();
 
   for (const edges of allPaths) {
-    const segments: RouteSegment[] = [];
+    const segments: RawSegment[] = [];
     for (const edge of edges) {
       const last = segments[segments.length - 1];
       if (last && last.line === edge.line) {
@@ -191,12 +192,50 @@ export function findRoute(fromId: string, toId: string): RouteHint[] {
         segments.push({ line: edge.line, stops: 1, endStationId: edge.stationId });
       }
     }
-    const totalStops = edges.length;
     const key = JSON.stringify(segments);
-    if (!seen.has(key)) {
-      seen.add(key);
-      hints.push({ segments, totalStops });
+    if (!seenRaw.has(key)) {
+      seenRaw.add(key);
+      rawRoutes.push({ segments, totalStops: edges.length });
     }
+  }
+
+  // Merge routes that only differ by which line is used on a segment.
+  // Shape key: stops and endStationIds, ignoring lines.
+  const shapeGroups = new Map<string, typeof rawRoutes>();
+  for (const route of rawRoutes) {
+    const shapeKey = route.segments
+      .map((s) => `${s.stops}:${s.endStationId}`)
+      .join("|");
+    let group = shapeGroups.get(shapeKey);
+    if (!group) {
+      group = [];
+      shapeGroups.set(shapeKey, group);
+    }
+    group.push(route);
+  }
+
+  const hints: RouteHint[] = [];
+  for (const group of shapeGroups.values()) {
+    const base = group[0];
+    const segments: RouteSegment[] = base.segments.map((s) => ({
+      lines: [s.line],
+      stops: s.stops,
+      endStationId: s.endStationId,
+    }));
+    // Merge lines from other routes in the same shape group
+    for (let r = 1; r < group.length; r++) {
+      for (let i = 0; i < segments.length; i++) {
+        const line = group[r].segments[i].line;
+        if (!segments[i].lines.includes(line)) {
+          segments[i].lines.push(line);
+        }
+      }
+    }
+    // Sort lines alphabetically for stable output
+    for (const seg of segments) {
+      seg.lines.sort();
+    }
+    hints.push({ segments, totalStops: base.totalStops });
   }
 
   return hints;
