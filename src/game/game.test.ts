@@ -87,22 +87,20 @@ describe("makeGuess", () => {
     expect(state.status).toBe("lost");
   });
 
-  it("ignores guesses after game is over", () => {
+  it("throws when guessing after game is over", () => {
     const won = makeGuess(game, game.targetId);
     const allIds = getAllStationIds();
     const anotherId = allIds.find((id) => id !== game.targetId)!;
 
-    const after = makeGuess(won, anotherId);
-    expect(after.guesses).toHaveLength(1); // no new guess added
+    expect(() => makeGuess(won, anotherId)).toThrow("Game is already over");
   });
 
-  it("ignores duplicate guesses", () => {
+  it("throws on duplicate guesses", () => {
     const allIds = getAllStationIds();
     const wrongId = allIds.find((id) => id !== game.targetId)!;
 
     const first = makeGuess(game, wrongId);
-    const second = makeGuess(first, wrongId);
-    expect(second.guesses).toHaveLength(1); // duplicate ignored
+    expect(() => makeGuess(first, wrongId)).toThrow("Already guessed");
   });
 
   it("throws for unknown stations", () => {

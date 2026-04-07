@@ -65,16 +65,15 @@ export function createGame(dateKey: string): GameState {
  */
 export function makeGuess(state: GameState, stationId: string): GameState {
   if (state.status !== "playing") {
-    return state;
+    throw new Error("Game is already over");
   }
 
   if (!graph.stations[stationId]) {
     throw new Error(`Unknown station: ${stationId}`);
   }
 
-  // Don't allow duplicate guesses
   if (state.guesses.some((g) => g.stationId === stationId)) {
-    return state;
+    throw new Error(`Already guessed: ${stationId}`);
   }
 
   const correct = stationId === state.targetId;
