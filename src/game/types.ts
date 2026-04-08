@@ -18,6 +18,13 @@ export interface TubeGraph {
   adjacency: Record<string, Edge[]>;
 }
 
+/** Station metadata (coordinates + borough) */
+export interface StationMeta {
+  lat: number;
+  lon: number;
+  borough: string;
+}
+
 /** One segment of a route — a contiguous run on one or more parallel lines */
 export interface RouteSegment {
   lines: string[];
@@ -31,28 +38,52 @@ export interface RouteHint {
   totalStops: number;
 }
 
-export type LetterStatus = "correct" | "present" | "absent";
-
-export interface CodeHint {
-  letters: { char: string; status: LetterStatus }[];
-}
-
 export type Comparison = "higher" | "lower" | "equal";
 
-export interface GuessResult {
+/** 8-point compass direction */
+export type CompassDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
+
+export type GameMode = "map" | "attributes";
+
+// ─── Map Mode Types ───
+
+export interface MapGuessResult {
   stationId: string;
   correct: boolean;
   hint: RouteHint;
-  codeHint: CodeHint;
-  ridership: number;
-  ridershipComparison: Comparison;
-  zone: string;
-  zoneComparison: Comparison;
+  compass: CompassDirection;
+  totalStops: number;
+  /** Which lines the guess shares with the target */
+  sharedLines: string[];
 }
+
+// ─── Attributes Mode Types ───
+
+export type TileMatch = "exact" | "partial" | "none";
+
+export interface AttributeGuessResult {
+  stationId: string;
+  correct: boolean;
+  zone: string;
+  zoneMatch: TileMatch;
+  zoneDirection: Comparison;
+  borough: string;
+  boroughMatch: TileMatch;
+  networkTypes: string[];
+  networkMatch: TileMatch;
+  linesServed: string[];
+  linesMatch: TileMatch;
+  ridership: number;
+  ridershipMatch: TileMatch;
+  ridershipDirection: Comparison;
+}
+
+// ─── Game State ───
 
 export interface GameState {
   targetId: string;
-  guesses: GuessResult[];
+  mode: GameMode;
+  guesses: MapGuessResult[] | AttributeGuessResult[];
   maxGuesses: number;
   status: "playing" | "won" | "lost";
 }

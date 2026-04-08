@@ -7,6 +7,7 @@ import {
   getTodayKey,
 } from "./game";
 import { getAllStationIds } from "./pathfinding";
+import type { GameState, MapGuessResult, AttributeGuessResult } from "./types";
 
 describe("daily puzzle selection", () => {
   it("returns a valid station for a given date", () => {
@@ -25,7 +26,6 @@ describe("daily puzzle selection", () => {
     const a = getTargetForDate("2026-01-01");
     const b = getTargetForDate("2026-01-02");
     const c = getTargetForDate("2026-06-15");
-    // At least two of three should differ
     const unique = new Set([a, b, c]);
     expect(unique.size).toBeGreaterThanOrEqual(2);
   });
@@ -39,47 +39,44 @@ describe("getTodayKey", () => {
 
 describe("createGame", () => {
   it("creates a fresh game with correct defaults", () => {
-    const game = createGame("2026-04-07");
+    const game = createGame("2026-04-07", "map");
     expect(game.status).toBe("playing");
     expect(game.guesses).toEqual([]);
     expect(game.maxGuesses).toBe(8);
     expect(game.targetId).toBe(getTargetForDate("2026-04-07"));
+    expect(game.mode).toBe("map");
   });
 });
 
-describe("makeGuess", () => {
-  let game: ReturnType<typeof createGame>;
+describe("makeGuess — map mode", () => {
+  let game: GameState;
 
   beforeEach(() => {
-    game = createGame("2026-04-07");
+    game = createGame("2026-04-07", "map");
   });
 
-  it("adds a guess with route hint", () => {
-    // Pick a station that isn't the target
+  it("adds a guess with route hint and compass", () => {
     const allIds = getAllStationIds();
     const wrongId = allIds.find((id) => id !== game.targetId)!;
 
     const next = makeGuess(game, wrongId);
     expect(next.guesses).toHaveLength(1);
-    expect(next.guesses[0].stationId).toBe(wrongId);
-    expect(next.guesses[0].correct).toBe(false);
-    expect(next.guesses[0].hint.segments.length).toBeGreaterThan(0);
-    expect(next.guesses[0].codeHint.letters).toHaveLength(3);
-    expect(next.status).toBe("playing");
-  });
 
-  it("returns correct code hint letters for exact match", () => {
-    const next = makeGuess(game, game.targetId);
-    for (const l of next.guesses[0].codeHint.letters) {
-      expect(l.status).toBe("correct");
-    }
+    const guess = next.guesses[0] as MapGuessResult;
+    expect(guess.stationId).toBe(wrongId);
+    expect(guess.correct).toBe(false);
+    expect(guess.hint.segments.length).toBeGreaterThan(0);
+    expect(guess.compass).toMatch(/^(N|NE|E|SE|S|SW|W|NW)$/);
+    expect(next.status).toBe("playing");
   });
 
   it("wins when guessing the target", () => {
     const next = makeGuess(game, game.targetId);
     expect(next.guesses).toHaveLength(1);
-    expect(next.guesses[0].correct).toBe(true);
-    expect(next.guesses[0].hint.totalStops).toBe(0);
+
+    const guess = next.guesses[0] as MapGuessResult;
+    expect(guess.correct).toBe(true);
+    expect(guess.hint.totalStops).toBe(0);
     expect(next.status).toBe("won");
   });
 
@@ -99,14 +96,12 @@ describe("makeGuess", () => {
     const won = makeGuess(game, game.targetId);
     const allIds = getAllStationIds();
     const anotherId = allIds.find((id) => id !== game.targetId)!;
-
     expect(() => makeGuess(won, anotherId)).toThrow("Game is already over");
   });
 
   it("throws on duplicate guesses", () => {
     const allIds = getAllStationIds();
     const wrongId = allIds.find((id) => id !== game.targetId)!;
-
     const first = makeGuess(game, wrongId);
     expect(() => makeGuess(first, wrongId)).toThrow("Already guessed");
   });
@@ -116,12 +111,42 @@ describe("makeGuess", () => {
   });
 });
 
+describe("makeGuess — attributes mode", () => {
+  let game: GameState;
+
+  beforeEach(() => {
+    game = createGame("2026-04-07", "attributes");
+  });
+
+  it("adds a guess with attribute tiles", () => {
+    const allIds = getAllStationIds();
+    const wrongId = allIds.find((id) => id !== game.targetId)!;
+
+    const next = makeGuess(game, wrongId);
+    expect(next.guesses).toHaveLength(1);
+
+    const guess = next.guesses[0] as AttributeGuessResult;
+    expect(guess.stationId).toBe(wrongId);
+    expect(guess.correct).toBe(false);
+    expect(guess.zoneMatch).toMatch(/^(exact|partial|none)$/);
+    expect(guess.boroughMatch).toMatch(/^(exact|none)$/);
+    expect(guess.networkMatch).toMatch(/^(exact|partial|none)$/);
+    expect(guess.linesMatch).toMatch(/^(exact|partial|none)$/);
+    expect(guess.ridershipMatch).toMatch(/^(exact|none)$/);
+  });
+
+  it("wins when guessing the target", () => {
+    const next = makeGuess(game, game.targetId);
+    const guess = next.guesses[0] as AttributeGuessResult;
+    expect(guess.correct).toBe(true);
+    expect(next.status).toBe("won");
+  });
+});
+
 describe("getStationList", () => {
   it("returns all stations sorted by name", () => {
     const list = getStationList();
     expect(list.length).toBe(getAllStationIds().length);
-
-    // Check sorted
     for (let i = 1; i < list.length; i++) {
       expect(list[i - 1].name.localeCompare(list[i].name)).toBeLessThanOrEqual(0);
     }

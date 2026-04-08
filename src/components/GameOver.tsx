@@ -1,50 +1,55 @@
 import { useState } from "react";
-import type { GameState } from "../game/types";
+import type { GameState, MapGuessResult, AttributeGuessResult } from "../game/types";
 import { getTodayKey } from "../game/game";
+import { getStationName } from "../game/pathfinding";
 
 interface GameOverProps {
   state: GameState;
-  targetName: string;
-  targetCode: string;
-  targetZone: string;
-  targetRidership: number;
-}
-
-function formatRidership(n: number): string {
-  if (n >= 1000) return Math.round(n / 1000) + "k";
-  return String(n);
 }
 
 function buildShareText(state: GameState): string {
   const dateKey = getTodayKey();
   const won = state.status === "won";
   const score = won ? `${state.guesses.length}/${state.maxGuesses}` : `X/${state.maxGuesses}`;
+  const modeLabel = state.mode === "map" ? "\uD83D\uDDFA\uFE0F" : "\uD83E\uDDEC";
 
-  const rows = state.guesses.map((guess) => {
-    const codePart = guess.codeHint?.letters
-      .map((l) => {
-        if (l.status === "correct") return "\uD83D\uDFE9";
-        if (l.status === "present") return "\uD83D\uDFE8";
-        return "\u2B1C";
-      })
-      .join("") ?? "";
+  let rows: string[];
+  if (state.mode === "map") {
+    const guesses = state.guesses as MapGuessResult[];
+    rows = guesses.map((g) => {
+      if (g.correct) return "\u2705";
+      const compass: Record<string, string> = {
+        N: "\u2B06\uFE0F", NE: "\u2197\uFE0F", E: "\u27A1\uFE0F", SE: "\u2198\uFE0F",
+        S: "\u2B07\uFE0F", SW: "\u2199\uFE0F", W: "\u2B05\uFE0F", NW: "\u2196\uFE0F",
+      };
+      return `${compass[g.compass]} ${g.totalStops} stops ${g.sharedLines.length > 0 ? "\uD83D\uDFE2" : "\u26AA"}`;
+    });
+  } else {
+    const guesses = state.guesses as AttributeGuessResult[];
+    rows = guesses.map((g) => {
+      if (g.correct) return "\u2705";
+      const tile = (m: string) =>
+        m === "exact" ? "\uD83D\uDFE9" : m === "partial" ? "\uD83D\uDFE8" : "\u2B1C";
+      return [
+        tile(g.zoneMatch),
+        tile(g.boroughMatch),
+        tile(g.networkMatch),
+        tile(g.linesMatch),
+        tile(g.ridershipMatch),
+      ].join("");
+    });
+  }
 
-    const trains = guess.correct
-      ? "\u2705"
-      : guess.hint.segments.map(() => "\uD83D\uDE83").join("");
-
-    return `${codePart} ${trains}`;
-  });
-
-  return `Tuble ${dateKey} ${score}\n${rows.join("\n")}`;
+  return `Tuble ${modeLabel} ${dateKey} ${score}\n${rows.join("\n")}`;
 }
 
-export default function GameOver({ state, targetName, targetCode, targetZone, targetRidership }: GameOverProps) {
+export default function GameOver({ state }: GameOverProps) {
   const [copied, setCopied] = useState(false);
 
   if (state.status === "playing") return null;
 
   const won = state.status === "won";
+  const targetName = getStationName(state.targetId) ?? state.targetId;
 
   function handleShare() {
     const text = buildShareText(state);
@@ -62,15 +67,6 @@ export default function GameOver({ state, targetName, targetCode, targetZone, ta
           ? `You found ${targetName} in ${state.guesses.length} ${state.guesses.length === 1 ? "guess" : "guesses"}.`
           : `The answer was ${targetName}.`}
       </p>
-      <div className="game-over-stats">
-        <span className="code-tiles">
-          {targetCode.split("").map((c, i) => (
-            <span key={i} className="code-tile correct">{c}</span>
-          ))}
-        </span>
-        <span>Zone {targetZone}</span>
-        <span>{formatRidership(targetRidership)} riders/day</span>
-      </div>
       <button className="share-btn" onClick={handleShare}>
         {copied ? "Copied!" : "Share"}
       </button>

@@ -1,12 +1,6 @@
 import { useState } from "react";
-import type { Difficulty } from "../game/settings";
 
-interface SettingsProps {
-  difficulty: Difficulty;
-  onChangeDifficulty: (d: Difficulty) => void;
-}
-
-export default function Settings({ difficulty, onChangeDifficulty }: SettingsProps) {
+export default function Settings() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -22,51 +16,45 @@ export default function Settings({ difficulty, onChangeDifficulty }: SettingsPro
             </button>
             <h2>How to play</h2>
             <p>
-              Guess the mystery station in 8 tries. All London Underground and
-              Elizabeth line stations are included (but not Overground or DLR).
-              After each guess you'll see the shortest route from your guess to
-              the target, broken into segments with stop counts. Routes are
-              chosen by fewest stops, but changing lines adds a penalty of 1.5
-              stops.
+              Guess the mystery London Underground station in 8 tries. Choose
+              between two game modes using the toggle at the top.
             </p>
-            <p>The 3-letter station code gives you a Wordle-style hint:</p>
-            <ul className="hint-key">
-              <li><span className="code-tile correct inline-tile">G</span> Right letter, right position</li>
-              <li><span className="code-tile present inline-tile">Y</span> Right letter, wrong position</li>
-              <li><span className="code-tile absent inline-tile">X</span> Letter not in the code</li>
-            </ul>
-            <h3>Zone &amp; ridership</h3>
+
+            <h3>Map Mode</h3>
             <p>
-              Each guess shows the station's zone and average daily ridership. The
-              arrows tell you whether the target is in a higher (▲) or lower (▼)
-              zone, and whether it's busier or quieter.
+              Each guess shows a visual route from your guess to the target, with
+              a compass arrow pointing in the real-world direction. Line colors
+              are only revealed if your guess shares that line with the target.
             </p>
-            <h3>Difficulty</h3>
-            <ul className="difficulty-key">
-              <li><strong>Easy</strong> — tube line names shown on each segment</li>
-              <li><strong>Medium</strong> — lines hidden, but if two guesses share the same segment the line is revealed</li>
-              <li><strong>Hard</strong> — lines hidden until the game ends</li>
+
+            <h3>Attributes Mode</h3>
+            <p>
+              Each guess shows 5 tiles comparing your guess to the target across
+              fixed categories:
+            </p>
+            <ul className="hint-key">
+              <li><strong>Zone</strong> — exact match or arrow direction</li>
+              <li><strong>Borough</strong> — same borough or miss</li>
+              <li><strong>Network</strong> — Underground vs Elizabeth line</li>
+              <li><strong>Lines</strong> — shared lines (hidden identity)</li>
+              <li><strong>Usage</strong> — daily passenger volume bracket</li>
             </ul>
-            <div className="difficulty-toggle">
-              <button
-                className={`difficulty-btn ${difficulty === "easy" ? "active" : ""}`}
-                onClick={() => onChangeDifficulty("easy")}
-              >
-                Easy
-              </button>
-              <button
-                className={`difficulty-btn ${difficulty === "medium" ? "active" : ""}`}
-                onClick={() => onChangeDifficulty("medium")}
-              >
-                Medium
-              </button>
-              <button
-                className={`difficulty-btn ${difficulty === "hard" ? "active" : ""}`}
-                onClick={() => onChangeDifficulty("hard")}
-              >
-                Hard
-              </button>
-            </div>
+
+            <h3>Tile colors</h3>
+            <ul className="hint-key">
+              <li>
+                <span className="attr-tile tile-exact inline-tile" />
+                Exact match
+              </li>
+              <li>
+                <span className="attr-tile tile-partial inline-tile" />
+                Partial match (shares some overlap)
+              </li>
+              <li>
+                <span className="attr-tile tile-miss inline-tile" />
+                No match
+              </li>
+            </ul>
           </div>
         </div>
       )}
