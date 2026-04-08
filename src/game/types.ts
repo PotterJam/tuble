@@ -18,11 +18,19 @@ export interface TubeGraph {
   adjacency: Record<string, Edge[]>;
 }
 
+/** Station metadata (coordinates + borough) */
+export interface StationMeta {
+  lat: number;
+  lon: number;
+  borough: string;
+}
+
 /** One segment of a route — a contiguous run on one or more parallel lines */
 export interface RouteSegment {
   lines: string[];
   stops: number;
   endStationId: string;
+  path: string[];
 }
 
 /** The hint shown to the player after a guess */
@@ -31,28 +39,21 @@ export interface RouteHint {
   totalStops: number;
 }
 
-export type LetterStatus = "correct" | "present" | "absent";
+/** 8-point compass direction */
+export type CompassDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
-export interface CodeHint {
-  letters: { char: string; status: LetterStatus }[];
-}
-
-export type Comparison = "higher" | "lower" | "equal";
-
-export interface GuessResult {
+export interface MapGuessResult {
   stationId: string;
   correct: boolean;
   hint: RouteHint;
-  codeHint: CodeHint;
-  ridership: number;
-  ridershipComparison: Comparison;
-  zone: string;
-  zoneComparison: Comparison;
+  compass: CompassDirection;
+  totalStops: number;
+  sharedLines: string[];
 }
 
 export interface GameState {
   targetId: string;
-  guesses: GuessResult[];
+  guesses: MapGuessResult[];
   maxGuesses: number;
   status: "playing" | "won" | "lost";
 }

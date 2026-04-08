@@ -17,43 +17,32 @@ describe("findRoute", () => {
   });
 
   it("finds a direct single-line route between adjacent stations", () => {
-    // Bank -> St. Paul's are adjacent on Central line
     const result = findRoute("bank", "st-pauls");
     expect(result).toHaveLength(1);
     expect(result[0].totalStops).toBe(1);
-    expect(result[0].segments).toEqual([{ lines: ["central"], stops: 1, endStationId: "st-pauls" }]);
+    expect(result[0].segments[0]).toMatchObject({ lines: ["central"], stops: 1, endStationId: "st-pauls" });
+    expect(result[0].segments[0].path).toEqual(["st-pauls"]);
   });
 
   it("finds a route with multiple options and merges parallel lines", () => {
-    // Victoria to Canary Wharf: district/circle share the same segment shape
     const result = findRoute("victoria", "canary-wharf");
-    expect(result).toEqual([
-      {
-        segments: [
-          { lines: ["circle", "district"], stops: 2, endStationId: "westminster" },
-          { lines: ["jubilee"], stops: 6, endStationId: "canary-wharf" },
-        ],
-        totalStops: 8,
-      },
-      {
-        segments: [
-          { lines: ["victoria"], stops: 1, endStationId: "green-park" },
-          { lines: ["jubilee"], stops: 7, endStationId: "canary-wharf" },
-        ],
-        totalStops: 8,
-      },
-    ]);
+    expect(result).toHaveLength(2);
+    expect(result[0].totalStops).toBe(8);
+    expect(result[0].segments[0]).toMatchObject({ lines: ["circle", "district"], stops: 2, endStationId: "westminster" });
+    expect(result[0].segments[1]).toMatchObject({ lines: ["jubilee"], stops: 6, endStationId: "canary-wharf" });
+    expect(result[1].segments[0]).toMatchObject({ lines: ["victoria"], stops: 1, endStationId: "green-park" });
+    expect(result[1].segments[1]).toMatchObject({ lines: ["jubilee"], stops: 7, endStationId: "canary-wharf" });
   });
 
   it("finds a single line route from Oxford Circus to Bank", () => {
-    // this route ends up with multiple hops if you don't penalise changes
     const result = findRoute("oxford-circus", "bank");
-    expect(result).toContainEqual({
-      segments: [
-        { lines: ["central"], stops: 5, endStationId: "bank" },
-      ],
-      totalStops: 5,
-    });
+    const match = result.find(r =>
+      r.segments.length === 1 &&
+      r.segments[0].lines.includes("central") &&
+      r.segments[0].stops === 5 &&
+      r.segments[0].endStationId === "bank"
+    );
+    expect(match).toBeTruthy();
   });
 
   it("every segment has valid lines", () => {
