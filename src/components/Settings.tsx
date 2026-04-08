@@ -16,45 +16,14 @@ export default function Settings() {
             </button>
             <h2>How to play</h2>
             <p>
-              Guess the mystery London Underground station in 8 tries. Choose
-              between two game modes using the toggle at the top.
+              Guess the mystery London Underground station in 8 tries.
             </p>
-
-            <h3>Map Mode</h3>
             <p>
-              Each guess shows a visual route from your guess to the target, with
-              a compass arrow pointing in the real-world direction. Line colors
-              are only revealed if your guess shares that line with the target.
+              Each guess shows a visual route from your guess to the target,
+              following the actual tube lines. Line colors are revealed when
+              your guess shares that line with the target, or when multiple
+              guesses share the same route segment.
             </p>
-
-            <h3>Attributes Mode</h3>
-            <p>
-              Each guess shows 5 tiles comparing your guess to the target across
-              fixed categories:
-            </p>
-            <ul className="hint-key">
-              <li><strong>Zone</strong> — exact match or arrow direction</li>
-              <li><strong>Borough</strong> — same borough or miss</li>
-              <li><strong>Network</strong> — Underground vs Elizabeth line</li>
-              <li><strong>Lines</strong> — shared lines (hidden identity)</li>
-              <li><strong>Usage</strong> — daily passenger volume bracket</li>
-            </ul>
-
-            <h3>Tile colors</h3>
-            <ul className="hint-key">
-              <li>
-                <span className="attr-tile tile-exact inline-tile" />
-                Exact match
-              </li>
-              <li>
-                <span className="attr-tile tile-partial inline-tile" />
-                Partial match (shares some overlap)
-              </li>
-              <li>
-                <span className="attr-tile tile-miss inline-tile" />
-                No match
-              </li>
-            </ul>
           </div>
         </div>
       )}

@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from "react";
-import type { GameMode } from "./game/types";
 import {
   getTodayKey,
   loadOrCreateGame,
@@ -8,37 +7,23 @@ import {
   getStationList,
   createGame,
   randomGame,
-  loadMode,
-  saveMode,
 } from "./game/game";
 import { getStationName } from "./game/pathfinding";
 import StationInput from "./components/StationInput";
 import MapGuessList from "./components/MapGuess";
-import AttributeGuessList from "./components/AttributeGuess";
 import GameOver from "./components/GameOver";
 import Settings from "./components/Settings";
-import type { MapGuessResult, AttributeGuessResult } from "./game/types";
+import type { MapGuessResult } from "./game/types";
 import "./App.css";
 
 const dateKey = getTodayKey();
 
 function App() {
-  const [mode, setMode] = useState<GameMode>(loadMode);
-  const [gameState, setGameState] = useState(() => loadOrCreateGame(dateKey, loadMode()));
+  const [gameState, setGameState] = useState(() => loadOrCreateGame(dateKey));
   const stations = useMemo(() => getStationList(), []);
   const guessedIds = useMemo(
     () => new Set(gameState.guesses.map((g) => g.stationId)),
     [gameState.guesses],
-  );
-
-  const handleModeChange = useCallback(
-    (newMode: GameMode) => {
-      setMode(newMode);
-      saveMode(newMode);
-      const game = loadOrCreateGame(dateKey, newMode);
-      setGameState(game);
-    },
-    [],
   );
 
   const handleGuess = useCallback(
@@ -51,16 +36,16 @@ function App() {
   );
 
   const handleReset = useCallback(() => {
-    const fresh = createGame(dateKey, mode);
+    const fresh = createGame(dateKey);
     setGameState(fresh);
     saveGame(dateKey, fresh);
-  }, [mode]);
+  }, []);
 
   const handleNewStation = useCallback(() => {
-    const fresh = randomGame(mode);
+    const fresh = randomGame();
     setGameState(fresh);
     saveGame(dateKey, fresh);
-  }, [mode]);
+  }, []);
 
   const getName = useCallback((id: string) => getStationName(id) ?? id, []);
 
@@ -68,36 +53,15 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>Tuble</h1>
-        <div className="mode-toggle">
-          <button
-            className={`mode-btn ${mode === "map" ? "active" : ""}`}
-            onClick={() => handleModeChange("map")}
-          >
-            Map
-          </button>
-          <button
-            className={`mode-btn ${mode === "attributes" ? "active" : ""}`}
-            onClick={() => handleModeChange("attributes")}
-          >
-            Attributes
-          </button>
-        </div>
         <p className="guess-counter">
           {gameState.guesses.length} / {gameState.maxGuesses}
         </p>
       </header>
 
-      {mode === "map" ? (
-        <MapGuessList
-          guesses={gameState.guesses as MapGuessResult[]}
-          getStationName={getName}
-        />
-      ) : (
-        <AttributeGuessList
-          guesses={gameState.guesses as AttributeGuessResult[]}
-          getStationName={getName}
-        />
-      )}
+      <MapGuessList
+        guesses={gameState.guesses as MapGuessResult[]}
+        getStationName={getName}
+      />
 
       {gameState.status === "playing" && (
         <StationInput

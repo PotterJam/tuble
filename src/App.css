@@ -23,40 +23,6 @@
   color: #666;
 }
 
-/* Mode toggle */
-.mode-toggle {
-  display: inline-flex;
-  border: 2px solid #0098d4;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 0.5rem;
-}
-
-.mode-btn {
-  padding: 0.4rem 1.25rem;
-  font-size: 0.85rem;
-  border: none;
-  background: #fff;
-  color: #0098d4;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 600;
-  transition: background 0.15s, color 0.15s;
-}
-
-.mode-btn + .mode-btn {
-  border-left: 2px solid #0098d4;
-}
-
-.mode-btn.active {
-  background: #0098d4;
-  color: #fff;
-}
-
-.mode-btn:hover:not(.active) {
-  background: #e8f4fd;
-}
-
 /* Bottom bar buttons */
 .bottom-btn {
   padding: 0.3rem 0.75rem;
@@ -251,10 +217,6 @@
   margin-bottom: 0.5rem;
 }
 
-.compass-arrow {
-  font-size: 1.4rem;
-  line-height: 1;
-}
 
 .total-stops {
   font-weight: 600;
@@ -263,68 +225,48 @@
 }
 
 /* Route Visualizer */
-.route-visualizer {
+.route-visualizer-wrapper {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0;
-  padding: 0.25rem 0;
-  overflow-x: auto;
+  padding: 0.5rem 0;
 }
 
-.route-node {
+.guess-station-info {
   display: flex;
   align-items: center;
-  justify-content: center;
+}
+
+.station-line-dots {
+  display: flex;
+  gap: 3px;
+  margin-left: 0.5rem;
+}
+
+.station-line-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   flex-shrink: 0;
-  z-index: 1;
 }
 
-.route-node-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #333;
+.route-svg {
+  display: block;
+  max-width: 100%;
 }
 
-.route-node-dot-target {
-  background: #e74c3c;
-}
-
-.route-node-ring {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 3px solid #333;
-  background: #fff;
-}
-
-.route-segment-visual {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
-.route-line {
-  height: 8px;
-  min-width: 40px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.route-stops-label {
-  font-size: 0.65rem;
+.route-stops-text {
+  font-size: 11px;
   font-weight: 700;
-  color: #fff;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #666;
-  text-shadow: none;
+  fill: #555;
+  font-family: inherit;
+}
+
+.route-target-text {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: sans-serif;
+  fill: #333;
 }
 
 /* Shared lines bubbles */
@@ -343,84 +285,6 @@
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
-}
-
-/* ─── Attributes Mode ─── */
-
-.attr-header-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 1rem 0.25rem;
-}
-
-.attr-header-name {
-  flex: 1;
-  min-width: 0;
-}
-
-.attr-header-tiles {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  flex-shrink: 0;
-  width: 230px;
-}
-
-.attr-header-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #999;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.attr-guess-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.attr-tiles {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-}
-
-.attr-tile {
-  aspect-ratio: 1;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: #fff;
-  min-height: 42px;
-}
-
-.tile-exact {
-  background: #6aaa64;
-}
-
-.tile-partial {
-  background: #c9b458;
-}
-
-.tile-miss {
-  background: #787c7e;
-}
-
-.attr-tile-value {
-  font-size: 0.8rem;
-  line-height: 1;
-}
-
-.attr-tile-arrow {
-  font-size: 1rem;
-  line-height: 1;
 }
 
 /* ─── Game Over ─── */

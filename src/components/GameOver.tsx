@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GameState, MapGuessResult, AttributeGuessResult } from "../game/types";
+import type { GameState, MapGuessResult } from "../game/types";
 import { getTodayKey } from "../game/game";
 import { getStationName } from "../game/pathfinding";
 
@@ -7,40 +7,76 @@ interface GameOverProps {
   state: GameState;
 }
 
+const LINE_EMOJI: Record<string, string> = {
+  bakerloo: "\uD83D\uDFE4",
+  central: "\uD83D\uDD34",
+  circle: "\uD83D\uDFE1",
+  district: "\uD83D\uDFE2",
+  elizabeth: "\uD83D\uDFE3",
+  "hammersmith-city": "\uD83D\uDFE0",
+  jubilee: "\u26AA",
+  metropolitan: "\uD83D\uDFE3",
+  northern: "\u26AB",
+  piccadilly: "\uD83D\uDD35",
+  victoria: "\uD83D\uDD35",
+  "waterloo-city": "\uD83D\uDFE2",
+};
+
+function buildSegmentKey(fromId: string, seg: { endStationId: string; lines: string[] }): string {
+  return `${fromId}->${seg.endStationId}:${[...seg.lines].sort().join(",")}`;
+}
+
+function getRevealedSegments(guesses: MapGuessResult[]): Set<string> {
+  const seen = new Map<string, number>();
+  const duplicates = new Set<string>();
+
+  for (const guess of guesses) {
+    let prevId = guess.stationId;
+    for (const seg of guess.hint.segments) {
+      const key = buildSegmentKey(prevId, seg);
+      const count = (seen.get(key) ?? 0) + 1;
+      seen.set(key, count);
+      if (count >= 2) duplicates.add(key);
+      prevId = seg.endStationId;
+    }
+  }
+
+  return duplicates;
+}
+
 function buildShareText(state: GameState): string {
   const dateKey = getTodayKey();
   const won = state.status === "won";
   const score = won ? `${state.guesses.length}/${state.maxGuesses}` : `X/${state.maxGuesses}`;
-  const modeLabel = state.mode === "map" ? "\uD83D\uDDFA\uFE0F" : "\uD83E\uDDEC";
 
-  let rows: string[];
-  if (state.mode === "map") {
-    const guesses = state.guesses as MapGuessResult[];
-    rows = guesses.map((g) => {
-      if (g.correct) return "\u2705";
-      const compass: Record<string, string> = {
-        N: "\u2B06\uFE0F", NE: "\u2197\uFE0F", E: "\u27A1\uFE0F", SE: "\u2198\uFE0F",
-        S: "\u2B07\uFE0F", SW: "\u2199\uFE0F", W: "\u2B05\uFE0F", NW: "\u2196\uFE0F",
-      };
-      return `${compass[g.compass]} ${g.totalStops} stops ${g.sharedLines.length > 0 ? "\uD83D\uDFE2" : "\u26AA"}`;
-    });
-  } else {
-    const guesses = state.guesses as AttributeGuessResult[];
-    rows = guesses.map((g) => {
-      if (g.correct) return "\u2705";
-      const tile = (m: string) =>
-        m === "exact" ? "\uD83D\uDFE9" : m === "partial" ? "\uD83D\uDFE8" : "\u2B1C";
-      return [
-        tile(g.zoneMatch),
-        tile(g.boroughMatch),
-        tile(g.networkMatch),
-        tile(g.linesMatch),
-        tile(g.ridershipMatch),
-      ].join("");
-    });
-  }
+  const guesses = state.guesses as MapGuessResult[];
+  const revealedKeys = getRevealedSegments(guesses);
 
-  return `Tuble ${modeLabel} ${dateKey} ${score}\n${rows.join("\n")}`;
+  const rows = guesses.map((g) => {
+    if (g.correct) return "\u2705";
+
+    const sharedSet = new Set(g.sharedLines);
+    const segEmojis: string[] = [];
+    let prevId = g.stationId;
+
+    for (const seg of g.hint.segments) {
+      const segKey = buildSegmentKey(prevId, seg);
+      const revealedByShared = seg.lines.find(l => sharedSet.has(l));
+      const revealedByCross = revealedKeys.has(segKey);
+
+      if (revealedByShared || revealedByCross) {
+        const lineId = revealedByShared ?? seg.lines[0];
+        segEmojis.push(LINE_EMOJI[lineId] ?? "\uD83D\uDFE0");
+      } else {
+        segEmojis.push("\u2B1C");
+      }
+      prevId = seg.endStationId;
+    }
+
+    return `${segEmojis.join("")} ${g.totalStops}`;
+  });
+
+  return `Tuble \uD83D\uDE87 ${dateKey} ${score}\n${rows.join("\n")}`;
 }
 
 export default function GameOver({ state }: GameOverProps) {

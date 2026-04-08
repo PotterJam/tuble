@@ -7,7 +7,7 @@ import {
   getTodayKey,
 } from "./game";
 import { getAllStationIds } from "./pathfinding";
-import type { GameState, MapGuessResult, AttributeGuessResult } from "./types";
+import type { GameState, MapGuessResult } from "./types";
 
 describe("daily puzzle selection", () => {
   it("returns a valid station for a given date", () => {
@@ -39,20 +39,19 @@ describe("getTodayKey", () => {
 
 describe("createGame", () => {
   it("creates a fresh game with correct defaults", () => {
-    const game = createGame("2026-04-07", "map");
+    const game = createGame("2026-04-07");
     expect(game.status).toBe("playing");
     expect(game.guesses).toEqual([]);
     expect(game.maxGuesses).toBe(8);
     expect(game.targetId).toBe(getTargetForDate("2026-04-07"));
-    expect(game.mode).toBe("map");
   });
 });
 
-describe("makeGuess — map mode", () => {
+describe("makeGuess", () => {
   let game: GameState;
 
   beforeEach(() => {
-    game = createGame("2026-04-07", "map");
+    game = createGame("2026-04-07");
   });
 
   it("adds a guess with route hint and compass", () => {
@@ -108,38 +107,6 @@ describe("makeGuess — map mode", () => {
 
   it("throws for unknown stations", () => {
     expect(() => makeGuess(game, "fake-station")).toThrow("Unknown station");
-  });
-});
-
-describe("makeGuess — attributes mode", () => {
-  let game: GameState;
-
-  beforeEach(() => {
-    game = createGame("2026-04-07", "attributes");
-  });
-
-  it("adds a guess with attribute tiles", () => {
-    const allIds = getAllStationIds();
-    const wrongId = allIds.find((id) => id !== game.targetId)!;
-
-    const next = makeGuess(game, wrongId);
-    expect(next.guesses).toHaveLength(1);
-
-    const guess = next.guesses[0] as AttributeGuessResult;
-    expect(guess.stationId).toBe(wrongId);
-    expect(guess.correct).toBe(false);
-    expect(guess.zoneMatch).toMatch(/^(exact|partial|none)$/);
-    expect(guess.boroughMatch).toMatch(/^(exact|none)$/);
-    expect(guess.networkMatch).toMatch(/^(exact|partial|none)$/);
-    expect(guess.linesMatch).toMatch(/^(exact|partial|none)$/);
-    expect(guess.ridershipMatch).toMatch(/^(exact|none)$/);
-  });
-
-  it("wins when guessing the target", () => {
-    const next = makeGuess(game, game.targetId);
-    const guess = next.guesses[0] as AttributeGuessResult;
-    expect(guess.correct).toBe(true);
-    expect(next.status).toBe("won");
   });
 });
 
